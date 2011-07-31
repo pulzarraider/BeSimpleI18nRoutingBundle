@@ -53,14 +53,22 @@ class Router implements RouterInterface
     public function generate($name, $parameters = array(), $absolute = false)
     {
         if (isset($parameters['locale']) || isset($parameters['translate'])) {
-            $locale = isset($parameters['locale']) ? $parameters['locale'] : $this->session->getLocale();
-            unset($parameters['locale']);
+            if (isset($parameters['locale'])) {
+                $locale = $parameters['locale'];
+                unset($parameters['locale']);
+            } elseif (null !== $this->session) {
+                $locale = $this->session->getLocale();
+            } else {
+                $locale = 'en';
+            }
 
             if (isset($parameters['translate'])) {
-                foreach (array($parameters['translate']) as $translateAttribute) {
-                    $parameters[$translateAttribute] = $this->translator->reverseTranslate(
-                        $name, $locale, $translateAttribute, $parameters[$translateAttribute]
-                    );
+                if (null !== $this->translator) {
+                    foreach ((array) $parameters['translate'] as $translateAttribute) {
+                        $parameters[$translateAttribute] = $this->translator->reverseTranslate(
+                            $name, $locale, $translateAttribute, $parameters[$translateAttribute]
+                        );
+                    }
                 }
                 unset($parameters['translate']);
             }
@@ -73,7 +81,9 @@ class Router implements RouterInterface
         } catch (RouteNotFoundException $e) {
             if (null !== $this->session) {
                 // at this point here we would never have $parameters['translate'] due to condition before
-                return $this->generateI18n($name, $this->session->getLocale(), $parameters, $absolute);
+                $locale = null !== $this->session ? $this->session->getLocale() : 'en';
+
+                return $this->generateI18n($name, $locale, $parameters, $absolute);
             } else {
                 throw $e;
             }
@@ -92,8 +102,8 @@ class Router implements RouterInterface
             $match['_route'] = $route[1];
 
             // now also check if we want to translate parameters:
-            if (isset($match['_translate'])) {
-                foreach ((array)$match['_translate'] as $attribute) {
+            if (null !== $this->translator && isset($match['_translate'])) {
+                foreach ((array) $match['_translate'] as $attribute) {
                     $match[$attribute] = $this->translator->translate(
                         $match['_route'], $match['_locale'], $attribute, $match[$attribute]
                     );
