@@ -2,13 +2,13 @@
 
 namespace BeSimple\I18nRoutingBundle\Routing;
 
+use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use BeSimple\I18nRoutingBundle\Routing\Translator\AttributeTranslatorInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Session;
 use Symfony\Component\Routing\RequestContext;
-use Symfony\Bundle\FrameworkBundle\Routing\Router as BaseRouter;
 
-class Router extends BaseRouter
+class Router implements RouterInterface
 {
     /**
      * @var Session
@@ -21,25 +21,20 @@ class Router extends BaseRouter
     private $translator;
 
     /**
-     * Constructor.
-     *
-     * Available options:
-     *
-     *   * See Router class
-     *
-     * @param Session            $session   A Session instance
-     * @param ContainerInterface $container A ContainerInterface instance
-     * @param mixed              $resource  The main resource to load
-     * @param array              $options   An array of options
-     * @param array              $context   The context
-     * @param array              $defaults  The default values
-     *
-     * @throws \InvalidArgumentException When unsupported option is provided
+     * @var RouterInterface
      */
-    public function __construct(Session $session = null, AttributeTranslatorInterface $translator = null, ContainerInterface $container, $resource, array $options = array(), RequestContext $context = null, array $defaults = array())
-    {
-        parent::__construct($container, $resource, $options, $context, $defaults);
+    private $router;
 
+    /**
+     * Constructor
+     *
+     * @param \Symfony\Component\Routing\RouterInterface $router
+     * @param null|\Symfony\Component\HttpFoundation\Session $session
+     * @param Translator\AttributeTranslatorInterface|null $translator
+     */
+    public function __construct(RouterInterface $router, Session $session = null, AttributeTranslatorInterface $translator = null)
+    {
+        $this->router = $router;
         $this->session    = $session;
         $this->translator = $translator;
     }
@@ -74,8 +69,8 @@ class Router extends BaseRouter
         }
 
         try {
-            return parent::generate($name, $parameters, $absolute);
-        } catch (\InvalidArgumentException $e) {
+            return $this->router->generate($name, $parameters, $absolute);
+        } catch (RouteNotFoundException $e) {
             if (null !== $this->session) {
                 // at this point here we would never have $parameters['translate'] due to condition before
                 return $this->generateI18n($name, $this->session->getLocale(), $parameters, $absolute);
@@ -90,7 +85,7 @@ class Router extends BaseRouter
      */
     public function match($url)
     {
-        $match = parent::match($url);
+        $match = $this->router->match($url);
 
         // if a _locale parameter isset remove the .locale suffix that is appended to each route in I18nRoute
         if (!empty($match['_locale']) && preg_match('#^(.+)\.'.preg_quote($match['_locale'], '#').'+$#', $match['_route'], $route)) {
@@ -109,6 +104,11 @@ class Router extends BaseRouter
         return $match;
     }
 
+    public function setContext(RequestContext $context)
+    {
+        $this->router->setContext($context);
+    }
+
     /**
      * Generates a I18N URL from the given parameter
      *
@@ -119,10 +119,14 @@ class Router extends BaseRouter
      *
      * @return string The generated URL
      *
-     * @throws \InvalidArgumentException When the route doesn't exists
+     * @throws RouteNotFoundException When the route doesn't exists
      */
-    protected function generateI18n($name, $locale, $parameters, $absolute)
+    private function generateI18n($name, $locale, $parameters, $absolute)
     {
-        return $this->getGenerator()->generateI18n($name, $locale, $parameters, $absolute);
+        try {
+            return $this->router->generate($name.'.'.$locale, $parameters, $absolute);
+        } catch (RouteNotFoundException $e) {
+            throw new RouteNotFoundException(sprintf('I18nRoute "%s" (%s) does not exist.', $name, $locale));
+        }
     }
 }
