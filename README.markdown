@@ -43,6 +43,16 @@ When you create an I18N route and you go on it with your browser, the locale wil
 
 ## Create your routing
 
+To define internationalized routes in XML or YAML, you need to import the
+routing file by using the ``be_simple_i18n`` type:
+
+    my_yaml_i18n_routes:
+        resource: "@MyWebsiteBundle/Resources/config/routing/i18n.yml"
+        type: be_simple_i18n
+    my_xml_i18n_routes:
+        resource: "@MyWebsiteBundle/Resources/config/routing/i18n.xml"
+        type: be_simple_i18n
+
 ### Yaml routing file
 
     homepage:
@@ -52,11 +62,10 @@ When you create an I18N route and you go on it with your browser, the locale wil
 ### XML routing file
 
     <?xml version="1.0" encoding="UTF-8" ?>
-    
-    <routes xmlns="http://www.symfony-project.org/schema/routing"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.symfony-project.org/schema/routing http://www.symfony-project.org/schema/routing/routing-1.0.xsd">
-    
+
+    <routes xmlns="http://example.com/schema/be_simple_i18n_routing"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
         <route id="homepage">
             <locale key="en">/welcome</locale>
             <locale key="fr">/bienvenue</locale>
@@ -65,20 +74,23 @@ When you create an I18N route and you go on it with your browser, the locale wil
         </route>
     </routes>
 
+Note that the XML file uses a different namespace than when using the core
+loader: ``http://example.com/schema/be_simple_i18n_routing``.
+
 ### PHP routing file
 
     <?php
-    
+
     use BeSimple\I18nRoutingBundle\Routing\I18nRoute;
     use Symfony\Component\Routing\RouteCollection;
-    
+
     $collection = new RouteCollection();
     $route      = new I18nRoute('homepage',
         array('en' => '/welcome', 'fr' => '/bienvenue', 'de' => '/willkommen'),
         array('_controller' => 'MyWebsiteBundle:Frontend:index')
     );
     $collection->addCollection($route->getCollection());
-    
+
     return $collection;
 
 ### You can insert classic route in your routing
@@ -88,7 +100,7 @@ When you create an I18N route and you go on it with your browser, the locale wil
     hello:
         pattern:  /hello/{name}
         defaults: { _controller: HelloBundle:Hello:index }
-    
+
     homepage:
         locales:  { en: /welcome/{name}, fr: /bienvenue/{name}, de: /willkommen/{name} }
         defaults: { _controller: MyWebsiteBundle:Frontend:index }
@@ -96,15 +108,14 @@ When you create an I18N route and you go on it with your browser, the locale wil
 #### XML routing file
 
     <?xml version="1.0" encoding="UTF-8" ?>
-    
-    <routes xmlns="http://symfony.com/schema/routing"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://symfony.com/schema/routing http://symfony.com/schema/routing/routing-1.0.xsd">
-    
+
+    <routes xmlns="http://example.com/schema/be_simple_i18n_routing"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
         <route id="hello" pattern="/hello/{name}">
             <default key="_controller">HelloBundle:Hello:index</default>
         </route>
-    
+
         <route id="homepage">
             <locale key="en">/welcome/{name}</locale>
             <locale key="fr">/bienvenue/{name}</locale>
@@ -116,11 +127,11 @@ When you create an I18N route and you go on it with your browser, the locale wil
 #### PHP routing file
 
     <?php
-    
+
     use BeSimple\I18nRoutingBundle\Routing\I18nRoute;
     use Symfony\Component\Routing\Route;
     use Symfony\Component\Routing\RouteCollection;
-    
+
     $collection = new RouteCollection();
     $collection->add('hello', new Route('/hello/{name}', array(
         '_controller' => 'HelloBundle:Hello:index',
@@ -130,7 +141,7 @@ When you create an I18N route and you go on it with your browser, the locale wil
         array('_controller' => 'MyWebsiteBundle:Frontend:index',)
     );
     $collection->addCollection($route->getCollection());
-    
+
     return $collection;
 
 ## Generate route in your templates
@@ -205,10 +216,10 @@ The Doctrine Backend has the following table structure:
     CREATE TABLE routing_translations (
         id INT NOT NULL,
         route VARCHAR(255) NOT NULL,
-        locale VARCHAR(255) NOT NULL, 
+        locale VARCHAR(255) NOT NULL,
         attribute VARCHAR(255) NOT NULL,
-        localized_value VARCHAR(255) NOT NULL, 
-        original_value VARCHAR(255) NOT NULL, 
+        localized_value VARCHAR(255) NOT NULL,
+        original_value VARCHAR(255) NOT NULL,
         UNIQUE INDEX UNIQ_291BA3522C420794180C698FA7AEFFB (route, locale, attribute),
         INDEX IDX_291BA352D951F3E4 (localized_value),
         PRIMARY KEY(id)
