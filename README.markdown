@@ -213,7 +213,7 @@ Configure the use of the DBAL backend
     // app/config/config.yml
     be_simple_i18n_routing:
         attribute_translator:
-            type: doctrine
+            type: doctrine_dbal
             connection: default # Doctrine DBAL connection name. Using null (default value) will use the default connection
             cache: apc
 
